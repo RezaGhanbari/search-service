@@ -88,7 +88,22 @@ func searchEndpoint(c *gin.Context) {
 	if i, err := strconv.Atoi(c.Query("take")); err == nil {
 		take = i
 	}
+
+	esQuery := elastic.NewMultiMatchQuery(query, "title", "content").
+		Fuzziness("2").
+		MinimumShouldMatch("2")
+	result, err := elasticClient.Search().
+		Index(elasticIndexName).
+		Query(esQuery).
+		From(skip).Size(take).
+		Do(c.Request.Context())
+	if err != nil {
+		log.Println(err)
+		errorResponse(c, http.StatusInternalServerError, "Something went wrong!")
+		return
+	}
 	// ...
+
 }
 
 func main() {
