@@ -12,6 +12,7 @@ import (
 	//"github.com/olivere/elastic"
 	//"github.com/teris-io/shortid"
 	"net/http"
+	"strconv"
 )
 
 const (
@@ -72,6 +73,24 @@ func createDocumentsEndpoint(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func searchEndpoint(c *gin.Context) {
+	// Parse request
+	query := c.Query("query")
+	if query == "" {
+		errorResponse(c, http.StatusBadRequest, "Query not specified")
+		return
+	}
+	skip := 0
+	take := 10
+	if i, err := strconv.Atoi(c.Query("skip")); err == nil {
+		skip = i
+	}
+	if i, err := strconv.Atoi(c.Query("take")); err == nil {
+		take = i
+	}
+	// ...
+}
+
 func main() {
 	var err error
 	for {
@@ -88,7 +107,12 @@ func main() {
 	}
 	// ...
 	r := gin.Default()
-	r.POST("/documents", createDocumentsFunction)
+	r.POST("/documents", createDocumentsEndpoint)
+	if err = r.Run(":8080"); err != nil {
+		log.Fatal(err)
+	}
+
+	r.GET("/search", searchEndpoint)
 	if err = r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
