@@ -1,18 +1,15 @@
 package main
 
 import (
-	//"encoding/json"
-	//"fmt"
+	"encoding/json"
+	"fmt"
 	"log"
-	//"net/http"
-	//"strconv"
+	"net/http"
+	"strconv"
 	"time"
-
 	//"github.com/gin-gonic/gin"
 	//"github.com/olivere/elastic"
 	//"github.com/teris-io/shortid"
-	"net/http"
-	"strconv"
 )
 
 const (
@@ -27,14 +24,26 @@ type Document struct {
 	Content   string    `json:"content"`
 }
 
-var (
-	elasticClient *elastic.Client
-)
-
 type DocumentRequest struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 }
+
+type DocumentResponse struct {
+	Title     string    `json:"title"`
+	CreatedAt time.Time `json:"created_at"`
+	Content   string    `json:"content"`
+}
+
+type SearchResponse struct {
+	Time      string             `json:"time"`
+	Hits      string             `json:"hits"`
+	Documents []DocumentResponse `json:"documents"`
+}
+
+var (
+	elasticClient *elastic.Client
+)
 
 // A helper function for responding with an error.
 func errorResponse(c *gin.Context, code int, err string) {
@@ -102,7 +111,19 @@ func searchEndpoint(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, "Something went wrong!")
 		return
 	}
-	// ...
+	res := SearchResponse{
+		Time: fmt.Sprintf("%d", result.TookInMillis),
+		Hits: fmt.Sprintf("%d", result.Hits.TotalHits),
+	}
+
+	docs := make([]DocumentResponse, 0)
+	for _, hit := range result.Hits.Hits {
+		var doc DocumentResponse
+		json.Unmarshal(*hit.Source, &doc)
+		docs = append(docs, doc)
+	}
+	res.Documents = docs
+	c.JSON(http.StatusOK, res)
 
 }
 
@@ -120,7 +141,6 @@ func main() {
 			break
 		}
 	}
-	// ...
 	r := gin.Default()
 	r.POST("/documents", createDocumentsEndpoint)
 	if err = r.Run(":8080"); err != nil {
