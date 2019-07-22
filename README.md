@@ -1,2 +1,2 @@
 # search service
-Simple search service using elastic search
+ search service using elastic 
